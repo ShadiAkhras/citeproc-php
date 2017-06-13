@@ -101,5 +101,13 @@ class Choose implements Rendering, HasParent
     {
         return $this->parent;
     }
+
+    /**
+     * @return ArrayList
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
 }
 

@@ -166,4 +166,12 @@ class Group implements Rendering, HasParent
 
         return "";
     }
+
+    /**
+     * @return ArrayList
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
 }

@@ -20,6 +20,14 @@ use Seboettg\CiteProc\Data\DataList;
  */
 interface Rendering
 {
+    const RENDERING_LEAFS = [
+        "Seboettg\Collection\ArrayListSeboettg\CiteProc\Rendering\Name\Name",
+        "Seboettg\Collection\ArrayListSeboettg\CiteProc\Rendering\Name\EtAl",
+        "Seboettg\Collection\ArrayListSeboettg\CiteProc\Rendering\Label",
+        "Seboettg\Collection\ArrayListSeboettg\CiteProc\Rendering\Number",
+        "Seboettg\Collection\ArrayListSeboettg\CiteProc\Rendering\Text",
+    ];
+
 
     /**
      * @param array|DataList $data

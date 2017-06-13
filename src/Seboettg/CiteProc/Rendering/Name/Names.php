@@ -354,4 +354,8 @@ class Names implements Rendering, HasParent
         return $this->parent;
     }
 
+    public function getChildren()
+    {
+        return $this->name;
+    }
 }

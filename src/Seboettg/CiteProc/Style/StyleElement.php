@@ -84,4 +84,8 @@ abstract class StyleElement
         return $this->parent;
     }
 
+    public function getLayout()
+    {
+        return $this->layout;
+    }
 }

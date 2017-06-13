@@ -12,11 +12,17 @@ namespace Seboettg\CiteProc\Rendering;
 use Seboettg\CiteProc\CiteProc;
 use Seboettg\CiteProc\Context;
 use Seboettg\CiteProc\Data\DataList;
+use Seboettg\CiteProc\Rendering\Date\Date;
+use Seboettg\CiteProc\Rendering\Name\Name;
+use Seboettg\CiteProc\Rendering\Name\Names;
+use Seboettg\CiteProc\Style\Citation;
+use Seboettg\CiteProc\Style\StyleElement;
 use Seboettg\CiteProc\Styles\AffixesTrait;
 use Seboettg\CiteProc\Styles\ConsecutivePunctuationCharacterTrait;
 use Seboettg\CiteProc\Styles\FormattingTrait;
 use Seboettg\CiteProc\Styles\DelimiterTrait;
 use Seboettg\CiteProc\Util\Factory;
+use Seboettg\CiteProc\Util\NameHelper;
 use Seboettg\CiteProc\Util\StringHelper;
 use Seboettg\Collection\ArrayList;
 
@@ -103,11 +109,11 @@ class Layout implements Rendering
                         return $this->renderGroupedCitations($data, $citationItems);
                     } else {
                         $data = $this->filterCitationItems($data, $citationItems);
-                        $ret = $this->renderCitations($data, $ret);
+                        $ret = $this->renderCitations($data);
                     }
 
                 } else {
-                    $ret = $this->renderCitations($data, $ret);
+                    $ret = $this->renderCitations($data);
                 }
 
             } else {
@@ -190,14 +196,19 @@ class Layout implements Rendering
      * @param $ret
      * @return string
      */
-    private function renderCitations($data, $ret)
+    private function renderCitations($data)
     {
         CiteProc::getContext()->getResults()->replace([]);
         foreach ($data as $citationNumber => $item) {
             CiteProc::getContext()->getResults()->append($this->renderSingle($item, $citationNumber));
         }
-        $ret .= implode($this->delimiter, CiteProc::getContext()->getResults()->toArray());
-        return $ret;
+
+        if (CiteProc::getContext()->getCitationSpecificOptions()->isDisambiguationActivated() &&
+            $this->containsAmbiguousEntries()) {
+            $this->disambiguate($data);
+        }
+
+        return implode($this->delimiter, CiteProc::getContext()->getResults()->toArray());
     }
 
     /**
@@ -253,4 +264,88 @@ class Layout implements Rendering
         return implode("\n", $group);
     }
 
+    /**
+     * returns true if result contains duplicated values, otherwise false
+     * @return bool
+     */
+    private function containsAmbiguousEntries()
+    {
+        $countedValues = array_count_values(CiteProc::getContext()->getResults()->toArray());
+
+        foreach ($countedValues as $value) {
+            if ($value > 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function disambiguate($data)
+    {
+        if (CiteProc::getContext()->getCitationSpecificOptions()->getDisambiguateAddNames()) {
+            $this->disambiguateAddNames($data);
+        }
+    }
+
+    private function disambiguateAddNames($data)
+    {
+        do {
+            /** @var Name $name */
+            $name = $this->traverseUntilName($this->parent);
+            if (!is_null($name) && !empty($etAlUseFirst = $name->getEtAlUseFirst())) {
+                $name->setEtAlUseFirst(++$etAlUseFirst);
+            } else {
+                break; // break the loop
+            }
+            $this->renderCitations($data);
+        } while($etAlUseFirst <= NameHelper::maxAuthors($data) && $this->containsAmbiguousEntries());
+    }
+
+    /**
+     * @param $element
+     * @return null|Name
+     */
+    private function traverseUntilName(&$element)
+    {
+        if ($element instanceof StyleElement) {
+            $children = [$element->getLayout()];
+        } elseif ($element instanceof ArrayList) {
+            $children = $element;
+        } elseif ($element instanceof Name) {
+            return $element;
+        } elseif (in_array(get_class($element), Rendering::RENDERING_LEAFS)) {
+            return null;
+        }
+
+
+
+        foreach ($children as &$child) {
+            if ($child instanceof Name) {
+                return $child;
+            } elseif ($child instanceof Text) {
+                if ($child->rendersMacro()) {
+                    $macro = CiteProc::getContext()->getMacro($child->getVariable());
+                    return $this->traverseUntilName($macro);
+                }
+                continue;
+            } elseif ($child instanceof Date || $child instanceof Label || $child instanceof Number) {
+                continue;
+            } elseif ($child instanceof StyleElement) {
+                return $this->traverseUntilName($child->getLayout());
+            } else {
+                $newChildren = $child->getChildren();
+                return $this->traverseUntilName($newChildren);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @return ArrayList
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
 }

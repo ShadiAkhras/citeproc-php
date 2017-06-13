@@ -115,4 +115,30 @@ class NameHelper
         }
         return $data->family . (isset($data->given) ? $data->given : "");
     }
+
+    public static function minAuthors($data)
+    {
+        $count = 0;
+        foreach ($data as $item) {
+            if ($count === 0) {
+                $count = count($item->author);
+            } else {
+                if ($c = count($item->author) < $count) {
+                    $count = $c;
+                }
+            }
+        }
+        return $count;
+    }
+
+    public static function maxAuthors($data)
+    {
+        $count = 0;
+        foreach ($data as $item) {
+            if ($c = count($item->author) > $count) {
+                $count = $c;
+            }
+        }
+        return $count;
+    }
 }

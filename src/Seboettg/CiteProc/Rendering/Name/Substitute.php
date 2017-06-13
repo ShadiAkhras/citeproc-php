@@ -121,4 +121,14 @@ class Substitute implements Rendering
         }
         return implode("", $ret);
     }
+
+    /**
+     * @return ArrayList
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
+
+
 }
